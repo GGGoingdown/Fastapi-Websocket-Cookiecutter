@@ -1,0 +1,28 @@
+{
+    "project_name": "Base Project",
+    "project_slug": "{{ cookiecutter.project_name|lower|replace(' ', '-') }}",
+    "project_directory": "{{ cookiecutter.project_name|replace(' ', '-') }}",
+    "application_expose": "8000",
+    "postgres_expose": "5432",
+    "postgres_username": "postgres",
+    "postgres_password": "postgres",
+    "postgres_db": "changethis",
+    "redis_expose": "6379",
+    "redis_username": "default",
+    "redis_password": "redis",
+    "broadcaster_expose": "6380",
+    "rabbitmq_expose": "5672",
+    "rabbitmq_management_expose": "15672",
+    "rabbitmq_username": "rabbitmq",
+    "rabbitmq_password": "rabbitmq",
+    "sentry_dns": "",
+    "sentry_sample_rate": 1.0,
+    "jwt_secret_key": "",
+    "admin_name": "eddiepai",
+    "admin_email": "eddiepai0401@gmail.com",
+    "admin_password": "eddiepai",
+    "_copy_without_render": [
+        "*.html",
+        ".drone.yml"
+    ]
+}
