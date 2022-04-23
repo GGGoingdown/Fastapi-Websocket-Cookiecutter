@@ -27,3 +27,4 @@ COPY ./tests/ /app/tests/
 COPY pytest.ini /app/
 # Start script
 COPY ./script/start_test.sh /app/script/
+COPY ./script/worker_startup.sh /app/script/

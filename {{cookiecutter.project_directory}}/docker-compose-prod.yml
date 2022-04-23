@@ -62,6 +62,32 @@ services:
       timeout: 10s
       retries: 5
 
+  worker-monitor:
+    build:
+      context: .
+      dockerfile: ./dockerfiles/Dockerfile.prod
+    restart: unless-stopped
+    depends_on:
+      - broker
+      - cache
+    env_file:
+      - ./env/.env.prod
+    ports:
+      - ${FLOWER_EXPOSE:-5555}:5555
+    expose:
+      - ${FLOWER_EXPOSE:-5555}
+    environment:
+      - ENVIRONMENT=PROD
+    command: 
+      [
+        "celery",
+        "-A",
+        "app.main.celery",
+        "flower",
+        "--basic_auth=${FLOWER_USERNAME}:${FLOWER_PASSWORD}"
+      ]
+
+
   db:
     image: postgres:13
     restart: unless-stopped
