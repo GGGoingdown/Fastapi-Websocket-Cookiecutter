@@ -57,11 +57,12 @@ steps:
       urls:
       - tcp://broker:5672
 
-  - name: pg health check
-    image: postgres:13
-    commands:
-    - sleep 10
-    - pg_isready -h db -U $POSTGRES_USERNAME
+  - name: waiton db
+    image: akhenakh/drone-waiton:1.0
+    settings:
+      globaltimeout: 60s
+      urls:
+      - tcp://db:5432
 
   #TODO: Maybe it can do better
   #FIXME: If worker install poetry file with application simultaneously, it may cause error.
