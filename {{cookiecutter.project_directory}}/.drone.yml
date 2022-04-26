@@ -161,3 +161,50 @@ trigger:
     - master
     - test/*
     - feature/*
+
+
+---
+kind: pipeline
+type: docker
+name: build
+
+steps:
+- name: docker
+  image: plugins/docker
+  settings:
+    username:
+      from_secret: DockerHub_username
+    password:
+      from_secret: DockerHub_password
+    repo: gggoingdown/fastapi-cookiecutter
+    dockerfile: ./dockerfiles/Dockerfile.prod
+    tags:
+    - latest
+    - ${DRONE_TAG}
+    storage_driver: vfs
+
+- name: send telegram notification
+  image: appleboy/drone-telegram
+  when:
+    status:
+      - success
+      - failure
+  settings:
+    token:
+      from_secret: Telegram_gggoingdown_bot_token
+    to:
+      from_secret: Telegram_chat_id
+    message: >
+      {{#success build.status}}
+        Repository: {{repo.name}}
+        build image succeeded. Good job.
+      {{else}}
+        Repository: {{repo.name}}
+        build image failed. Fix me please.
+      {{/success}}
+
+trigger:
+  event:
+    - tag
+
+
