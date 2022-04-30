@@ -1,5 +1,7 @@
 import sys
 import sentry_sdk
+import socketio
+from socketio.asyncio_pubsub_manager import AsyncPubSubManager
 from sentry_sdk.integrations.asgi import SentryAsgiMiddleware
 from fastapi import FastAPI
 from fastapi.routing import APIRoute
@@ -24,8 +26,45 @@ else:
 __VERSION__ = "0.0.1"
 
 
+def create_socketio(
+    app: FastAPI, socketio_client: AsyncPubSubManager
+) -> socketio.AsyncServer:
+    if settings.app.env_mode == EnvironmentMode.PROD:
+        logger = False
+        engineio_logger = False
+    else:
+        logger = True
+        engineio_logger = True
+
+    sio = socketio.AsyncServer(
+        async_mode="asgi",
+        client_manager=socketio_client,
+        logger=logger,
+        engineio_logger=engineio_logger,
+        cors_allowed_origins=settings.app.cors_allowed_origins,
+    )
+
+    # # * Register namespace * #
+    from app.routers import TaskSocketIONamespace
+    from app.constants.socketio_namespaces import NamespaceEnum
+
+    sio.register_namespace(TaskSocketIONamespace(f"/{NamespaceEnum.task.value}"))
+
+    asgi = socketio.ASGIApp(
+        socketio_server=sio,
+    )
+    app.mount("/ws", asgi)
+
+
 def create_app() -> FastAPI:
     app = FastAPI(
+        servers=[
+            {"url": "https://stag.example.com", "description": "Staging environment"},
+            {
+                "url": "https://prod.example.com",
+                "description": "Production environment",
+            },
+        ],
         title="{{cookiecutter.project_name}}",
         version=__VERSION__,
         description="This project is create FastAPI Celery",
@@ -71,7 +110,7 @@ def create_app() -> FastAPI:
     app.include_router(routers.auth_router)
     app.include_router(routers.ws_router)
     app.include_router(routers.view_router)
-    app.include_router(routers.evnet_router)
+    app.include_router(routers.event_router)
 
     from app.broker import tasks
 
@@ -94,6 +133,9 @@ def create_app() -> FastAPI:
     async def startup_event():
         logger.info("--- Startup Event ---")
         await app.container.services.init_resources()
+        # * Socketio * #
+        socketio_client = app.container.gateways.socketio_client()
+        create_socketio(app, socketio_client=socketio_client)
 
     @app.on_event("shutdown")
     async def shutdown_event():

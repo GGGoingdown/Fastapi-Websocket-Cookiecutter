@@ -28,11 +28,13 @@ def long_trip_event(sleep_t: int = 10) -> None:
 @inject
 def long_trip_event_postrun(
     task_id: str,
-    task_ws_manager: services.TaskWsManager = Provide[
-        Application.services.task_ws_manager
+    task_socketio_manager: services.TaskSocketioManager = Provide[
+        Application.services.task_socketio_manager
     ],
     **kwargs: Any,
 ):
     task_state = broker_utils.get_task_info(task_id)
     logger.info(f"[LongTripEvent]::{task_id} -> {task_state}")
-    async_to_sync(task_ws_manager.updata_task_state)(task_id, task_state)
+    async_to_sync(task_socketio_manager.emit_task_status)(
+        task_id=task_id, payload=task_state
+    )

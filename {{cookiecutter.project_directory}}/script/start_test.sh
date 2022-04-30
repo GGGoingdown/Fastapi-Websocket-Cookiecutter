@@ -12,7 +12,6 @@ python ./app/pre_start.py
 aerich upgrade
 
 
-
 # Initial data
 python ./tests/initial_test_data.py
 

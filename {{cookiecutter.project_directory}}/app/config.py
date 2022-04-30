@@ -1,6 +1,6 @@
 from functools import lru_cache
 from enum import Enum
-from typing import Optional
+from typing import Optional, List
 from pydantic import BaseSettings, Field, AnyUrl
 
 # Log level
@@ -28,7 +28,14 @@ class JWT(BaseSettings):
 
 # Application
 class Application(BaseSettings):
-    env_mode: EnvironmentMode = Field(EnvironmentMode.TEST, env="ENVIRONMENT")
+    env_mode: EnvironmentMode = Field(EnvironmentMode.DEV, env="ENVIRONMENT")
+
+    cors_allowed_origins: List[str] = [
+        "http://localhost",
+        "https://localhost",
+        "http://localhost:8000",
+        "http://127.0.0.1:8000",
+    ]
 
 
 # Sentry

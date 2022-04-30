@@ -15,6 +15,8 @@
     "rabbitmq_management_expose": "15672",
     "rabbitmq_username": "rabbitmq",
     "rabbitmq_password": "rabbitmq",
+    "flower_username": "flower",
+    "flower_password": "flower",
     "sentry_dns": "",
     "sentry_sample_rate": 1.0,
     "jwt_secret_key": "",

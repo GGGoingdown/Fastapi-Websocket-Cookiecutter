@@ -46,14 +46,14 @@ services:
       - broker
       - cache
     env_file:
-      - ./env/.env.test
+      - ./env/.env.dev
     ports:
       - ${FLOWER_EXPOSE:-5555}:5555
     expose:
       - ${FLOWER_EXPOSE:-5555}
     environment:
       - ENVIRONMENT=DEV
-    command: 
+    command:
       [
         "celery",
         "-A",

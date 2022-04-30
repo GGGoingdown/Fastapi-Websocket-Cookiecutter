@@ -1,5 +1,9 @@
 #! /bin/bash
 
+set -e
+
+set -x
+
 # Link DB
 python ./app/pre_start.py
 

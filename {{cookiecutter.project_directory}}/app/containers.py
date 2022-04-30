@@ -9,15 +9,11 @@ class Gateways(containers.DeclarativeContainer):
     config = providers.Configuration()
     redis_client = providers.Resource(db.redis_init)
 
-    broadcaster_client = providers.Resource(db.broadcaster_init)
-
     # DB resource
-    db_resource = providers.Resource(db.DBResource, config=db.TORTOISE_ORM)
+    db_resource = providers.Resource(db.DBResource, connect_config=db.TORTOISE_ORM)
 
-    # Broadcaster resource
-    broadcaster_resource = providers.Resource(
-        db.BroadcasterResource, broadcaster=broadcaster_client
-    )
+    # # SocketIO
+    socketio_client = providers.Resource(db.socketio_init)
 
 
 class Services(containers.DeclarativeContainer):
@@ -34,12 +30,12 @@ class Services(containers.DeclarativeContainer):
 
     token_selector = providers.Resource(services.TokenSelector, jwt=jwt_manager)
 
-    # Repositories
+    # * Repositories *#
     user_repo = providers.Singleton(repositories.UserRepo)
 
     user_role_repo = providers.Singleton(repositories.UserRoleRepo)
 
-    # Cache
+    # * Cache *#
     user_cache = providers.Singleton(
         repositories.UserCache,
         redis_client=gateways.redis_client,
@@ -51,7 +47,7 @@ class Services(containers.DeclarativeContainer):
         redis_client=gateways.redis_client,
     )
 
-    # Services
+    # * Services *#
     user_service = providers.Singleton(
         services.UserService,
         user_repo=user_repo,
@@ -77,9 +73,12 @@ class Services(containers.DeclarativeContainer):
         token_selector=token_selector,
     )
 
-    # Websocket
-    task_ws_manager = providers.Singleton(
-        services.TaskWsManager, broadcaster=gateways.broadcaster_client
+    # * Websocket *#
+    task_websocket_manager = providers.Singleton(services.TaskWebsocketManager)
+
+    # * SocketIO *#
+    task_socketio_manager = providers.Singleton(
+        services.TaskSocketioManager, socketio_client=gateways.socketio_client
     )
 
 

@@ -1,5 +1,6 @@
 from pydantic import BaseModel, EmailStr, validator, Field
 from typing import List
+from app.constants.roles import RoleEnum
 
 
 class UserMail(BaseModel):
@@ -52,4 +53,4 @@ class UserInDB(UserInfo):
 
 class UserWithRoles(BaseModel):
     id: int
-    roles: List[str] = Field(..., description="User roles")
+    roles: List[RoleEnum] = Field(..., description="User roles")

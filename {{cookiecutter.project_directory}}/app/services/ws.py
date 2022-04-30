@@ -1,35 +1,71 @@
-import json
-from typing import Any, Dict
-from abc import ABCMeta, abstractmethod
 from loguru import logger
-from broadcaster import Broadcast
+from typing import Any
+from abc import ABCMeta, abstractmethod
 from fastapi import WebSocket
+from socketio.asyncio_pubsub_manager import AsyncPubSubManager
 
 # Application
-from app.broker import broker_utils
+from app.broker import get_task_info
+from app.constants.socketio_namespaces import NamespaceEnum
 
 
 class WebsocketManager(metaclass=ABCMeta):
-    def __init__(self, broadcaster: Broadcast) -> None:
-        self._broadcaster = broadcaster
-
+    @abstractmethod
     async def connect(self, websocket: WebSocket) -> None:
-        await websocket.accept()
+        pass
 
-    async def updata_task_state(self, task_id: str, task_state: Dict) -> None:
-        await self._broadcaster.connect()
-        await self._broadcaster.publish(channel=task_id, message=json.dumps(task_state))
-        await self._broadcaster.disconnect()
+    @abstractmethod
+    async def disconnect(self, websocket: WebSocket) -> None:
+        pass
 
 
 class TaskWebsocketManager(WebsocketManager):
-    def __init__(self, broadcaster: Broadcast) -> None:
-        super().__init__(broadcaster)
+    async def connect(self, websocket: WebSocket) -> None:
+        logger.info("[TaskWebsocketManager]::Connect")
+        await websocket.accept()
 
-    async def sender(self, websocket: WebSocket, task_id: str) -> None:
-        async with self._broadcaster.subscribe(channel=task_id) as subscriber:
-            data = broker_utils.get_task_info(task_id)
-            # Send pendind task state
-            await websocket.send_json(data)
-            async for event in subscriber:
-                await websocket.send_json(json.loads(event.message))
+    async def disconnect(self, websocket: WebSocket) -> None:
+        logger.info("[TaskWebsocketManager]::Disconnect")
+
+    async def update_task_status(self, websocket: WebSocket, *, task_id: str) -> None:
+        task_stauts = get_task_info(task_id)
+        logger.info(f"[TaskWebsocketManager]::Update task status: {task_stauts}")
+        await websocket.send_json(task_stauts)
+
+
+class SocketioManager:
+    __slots__ = ("socketio_client",)
+
+    namespace: NamespaceEnum
+
+    def __init__(self, socketio_client: AsyncPubSubManager) -> None:
+        self.socketio_client = socketio_client
+
+    async def emit(
+        self, path: str, *, data: Any, room: str, namespace: NamespaceEnum
+    ) -> None:
+        await self.socketio_client.emit(
+            path, data=data, room=room, namespace=f"/{namespace.value}"
+        )
+
+
+class TaskSocketioManager(SocketioManager):
+    namespace = NamespaceEnum.task
+
+    def __init__(self, socketio_client: AsyncPubSubManager) -> None:
+        super().__init__(socketio_client)
+
+    async def _emit_namespace(self, path: str, *, data: Any, room: str) -> None:
+        await self.emit(path, data=data, room=room, namespace=self.namespace)
+
+    async def emit_task_status(
+        self,
+        *,
+        task_id: str,
+        payload: Any,
+    ) -> None:
+        logger.info(f"[TaskSocketioManager]::Emit task status: {task_id}")
+        await self._emit_namespace("task_status", data=payload, room=task_id)
+
+    async def emit_task_info(self, *, payload: Any, room_id: str) -> None:
+        await self._emit_namespace("task_info", data=payload, room=room_id)

@@ -1,12 +1,10 @@
-from this import d
 import aioredis
+import socketio
+from socketio.asyncio_pubsub_manager import AsyncPubSubManager
 from typing import Dict, Any
 from loguru import logger
 from tortoise import Tortoise, connections
 from dependency_injector import resources
-from broadcaster import Broadcast
-
-# from tortoise.contrib.fastapi import register_tortoise
 
 # Configuration
 from app.config import settings
@@ -19,13 +17,13 @@ def get_redis_url() -> str:
     return url
 
 
-def get_redis_broadcaster_url() -> str:
-    url = f"redis://{settings.broadcaster.host}:{settings.broadcaster.port}/"
+def get_pg_url() -> str:
+    url = f"postgres://{settings.pg.username}:{settings.pg.password}@{settings.pg.host}:{settings.pg.port}/{settings.pg.db}"
     return url
 
 
-def get_pg_url() -> str:
-    url = f"postgres://{settings.pg.username}:{settings.pg.password}@{settings.pg.host}:{settings.pg.port}/{settings.pg.db}"
+def get_amqp_url() -> str:
+    url = f"amqp://{settings.rabbitmq.username}:{settings.rabbitmq.password}@{settings.rabbitmq.host}:{settings.rabbitmq.port}//"
     return url
 
 
@@ -56,28 +54,18 @@ def redis_init() -> aioredis:
     return redis_client
 
 
-def broadcaster_init() -> Broadcast:
-    url = get_redis_broadcaster_url()
-    broadcast = Broadcast(url)
-    return broadcast
+# Use RabbitMQ Broker
+def socketio_init() -> AsyncPubSubManager:
+    connect_uri = get_amqp_url()
+    mgr = socketio.AsyncAioPikaManager(connect_uri)
+    return mgr
 
 
 class DBResource(resources.AsyncResource):
-    async def init(self, config: Dict = TORTOISE_ORM) -> None:
+    async def init(self, connect_config: Dict = TORTOISE_ORM) -> None:
         logger.info("--- Initialize DB resource ---")
-        await Tortoise.init(config=config)
+        await Tortoise.init(config=connect_config)
 
     async def shutdown(self, *args: Any, **kwargs: Any):
         logger.info("--- Shutdown DB resource ---")
         await connections.close_all()
-
-
-class BroadcasterResource(resources.AsyncResource):
-    async def init(self, broadcaster: Broadcast):
-        logger.info("--- Initialize Broadcaster resource ---")
-        self.broadcaster = broadcaster
-        await self.broadcaster.connect()
-
-    async def shutdown(self, *args, **kwargs):
-        logger.info("--- Shutdown Broadcaster resource ---")
-        await self.broadcaster.disconnect()
