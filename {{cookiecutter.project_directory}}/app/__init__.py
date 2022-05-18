@@ -58,13 +58,6 @@ def create_socketio(
 
 def create_app() -> FastAPI:
     app = FastAPI(
-        servers=[
-            {"url": "https://stag.example.com", "description": "Staging environment"},
-            {
-                "url": "https://prod.example.com",
-                "description": "Production environment",
-            },
-        ],
         title="{{cookiecutter.project_name}}",
         version=__VERSION__,
         description="This project is create FastAPI Celery",
